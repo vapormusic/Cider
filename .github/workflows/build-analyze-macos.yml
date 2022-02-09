@@ -68,14 +68,14 @@ jobs:
     
     - name : env
       run: | 
-        export EVS_ACCOUNT_NAME${{ secrets.EVS_ACCOUNT_NAME}} && export EVS_PASSWD=${{ secrets.EVS_PASSWD }} 
+        export EVS_ACCOUNT_NAME=${{ secrets.EVS_ACCOUNT_NAME}} && export EVS_PASSWD=${{ secrets.EVS_PASSWD }} 
         export CSC_LINK=${{ secrets.CSC_LINK }} && export CSC_KEY_PASSWORD=${{ secrets.CSC_KEY_PASSWORD }}    
         export APPLEID=${{ secrets.APPLEID }}  && export APPLEIDPASS=${{ secrets.APPLEIDPASS }}   
     
     - name: Sign in to EVS
       run: |    
         python3 -m pip install --upgrade castlabs-evs
-        python3 -m castlabs_evs.account refresh
+        python3 -m castlabs_evs.account refresh 
         
     - run: |
        yarn install
