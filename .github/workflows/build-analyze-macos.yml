@@ -89,8 +89,9 @@ jobs:
         APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
         DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
       run: |
-       yarn install
-       yarn dist:universalNotWorking -p never
+        xcodebuild -version
+        yarn install
+        yarn dist:universalNotWorking -p never
 #     - name: Perform CodeQL Analysis
 #       uses: github/codeql-action/analyze@v1
 
