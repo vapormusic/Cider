@@ -66,18 +66,24 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
     
-    - name : env
-      run: | 
-        export EVS_ACCOUNT_NAME=${{ secrets.EVS_ACCOUNT_NAME}} && export EVS_PASSWD=${{ secrets.EVS_PASSWD }} 
-        export CSC_LINK=${{ secrets.CSC_LINK }} && export CSC_KEY_PASSWORD=${{ secrets.CSC_KEY_PASSWORD }}    
-        export APPLEID=${{ secrets.APPLEID }}  && export APPLEIDPASS=${{ secrets.APPLEIDPASS }}   
+#     - name : env
+#       run: | 
+#         export EVS_ACCOUNT_NAME=${{ secrets.EVS_ACCOUNT_NAME}} && export EVS_PASSWD=${{ secrets.EVS_PASSWD }} 
+#         export CSC_LINK=${{ secrets.CSC_LINK }} && export CSC_KEY_PASSWORD=${{ secrets.CSC_KEY_PASSWORD }}    
+#         export APPLEID=${{ secrets.APPLEID }}  && export APPLEIDPASS=${{ secrets.APPLEIDPASS }}   
     
     - name: Sign in to EVS
       run: |    
         python3 -m pip install --upgrade castlabs-evs
-        python3 -m castlabs_evs.account refresh -A ${{ secrets.EVS_ACCOUNT_NAME}} -P ${{ secrets.EVS_PASSWD }} 
+        python3 -m castlabs_evs.account refresh -A ${{ secrets.EVS_ACCOUNT_NAME }} -P ${{ secrets.EVS_PASSWD }} 
         
-    - run: |
+    - name : Build  
+      env: |
+        CSC_LINK: ${{ secrets.CSC_LINK }}
+        CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }} 
+        APPLEID: ${{ secrets.APPLEID }}
+        APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+      run: |
        yarn install
        yarn dist -m -p never
 #     - name: Perform CodeQL Analysis
