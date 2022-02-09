@@ -89,7 +89,7 @@ jobs:
         APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
       run: |
        yarn install
-       yarn dist:universalNotWorking -m -p never
+       yarn dist:universalNotWorking -p never
 #     - name: Perform CodeQL Analysis
 #       uses: github/codeql-action/analyze@v1
 
