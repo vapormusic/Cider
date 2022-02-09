@@ -78,7 +78,7 @@ jobs:
         python3 -m castlabs_evs.account refresh -A ${{ secrets.EVS_ACCOUNT_NAME }} -P ${{ secrets.EVS_PASSWD }} 
         
     - name : Build  
-      env: |
+      env: 
         CSC_LINK: ${{ secrets.CSC_LINK }}
         CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }} 
         APPLEID: ${{ secrets.APPLEID }}
