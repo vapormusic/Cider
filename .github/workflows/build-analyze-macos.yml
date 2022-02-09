@@ -75,7 +75,7 @@ jobs:
     - name: Sign in to EVS
       run: |    
         python3 -m pip install --upgrade castlabs-evs
-        python3 -m castlabs_evs.account refresh 
+        python3 -m castlabs_evs.account refresh -A ${{ secrets.EVS_ACCOUNT_NAME}} -P ${{ secrets.EVS_PASSWD }} 
         
     - run: |
        yarn install
