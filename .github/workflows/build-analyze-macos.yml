@@ -91,6 +91,7 @@ jobs:
       run: |
         xcodebuild -version
         yarn install
+        cp resources/macPackager.js node_modules/app-builder-lib/out/macPackager.js 
         yarn dist:universalNotWorking -p never
 #     - name: Perform CodeQL Analysis
 #       uses: github/codeql-action/analyze@v1
