@@ -65,6 +65,13 @@ jobs:
     # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
+    
+    - name : env
+      run: | 
+        export EVS_ACCOUNT_NAME${{ secrets.EVS_ACCOUNT_NAME}} && export EVS_PASSWD=${{ secrets.EVS_PASSWD }} 
+        export CSC_LINK=${{ secrets.CSC_LINK }} && export CSC_KEY_PASSWORD=${{ secrets.CSC_KEY_PASSWORD }}    
+        export APPLEID=${{ secrets.APPLEID }}  && export APPLEIDPASS=${{ secrets.APPLEIDPASS }}   
+    
     - name: Sign in to EVS
       run: |    
         python3 -m pip install --upgrade castlabs-evs
