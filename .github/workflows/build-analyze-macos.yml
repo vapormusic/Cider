@@ -44,6 +44,10 @@ jobs:
         # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
 
     steps:
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '12.4' 
+        
     - name: Checkout repository
       uses: actions/checkout@v2
       with: 
@@ -85,7 +89,7 @@ jobs:
         APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
       run: |
        yarn install
-       yarn dist -m -p never
+       yarn dist:universalNotWorking -m -p never
 #     - name: Perform CodeQL Analysis
 #       uses: github/codeql-action/analyze@v1
 
