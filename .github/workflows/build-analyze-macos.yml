@@ -13,7 +13,7 @@ name: "Build macOS"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
     paths-ignore:
     - 'README.md'
     - 'SECURITY.md'
@@ -22,7 +22,7 @@ on:
     - 'LICENSE'
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master ]
+    branches: [ develop ]
   schedule:
     - cron: '44 20 * * 1'
 
