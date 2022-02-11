@@ -601,6 +601,9 @@ export class BrowserWindow {
             shareMenu.popup();
         })
 
+        ipcMain.on('get-version', (_event) => {
+            _event.returnValue = app.getVersion()
+        });
 
         /* *********************************************************************************************
          * Window Events

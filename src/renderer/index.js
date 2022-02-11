@@ -54,6 +54,7 @@ const app = new Vue({
     el: "#app",
     store: store,
     data: {
+        version: ipcRenderer.sendSync("get-version"),
         appMode: "player",
         ipcRenderer: ipcRenderer,
         cfg: ipcRenderer.sendSync("getStore"),
@@ -1243,6 +1244,9 @@ const app = new Vue({
             if (route.indexOf("/") == -1) {
                 this.page = route
                 window.location.hash = this.page
+                if (this.page == "settings") {
+                    this.getVersion()
+                }
                 return
             }
             let hash = route.split("/")
@@ -3459,7 +3463,7 @@ const app = new Vue({
             app.cfg.lastfm.auth_token = "";
             app.cfg.lastfm.enabled = false;
             const element = document.getElementById('lfmConnect');
-            element.innerHTML = getLz('term.connect');
+            element.innerHTML = app.getLz('term.connect');
             element.onclick = app.LastFMAuthenticate;
         },
         LastFMAuthenticate() {
@@ -3646,7 +3650,7 @@ const app = new Vue({
                 } else if (u && u.includes('_') && langcodes.includes(((u.toLowerCase()).replace('_', "-")).split("-")[0])) {
                     sellang = ((u.toLowerCase()).replace('_', "-")).split("-")[0]
                 }
-                if (sellang.startsWith("en") && this.mk.storefrontId != "en-us") sellang = "en-gb"
+                if (sellang.startsWith("en") && this.mk.storefrontId != "us") sellang = "en-gb"
                 return await sellang
             }          
         }
