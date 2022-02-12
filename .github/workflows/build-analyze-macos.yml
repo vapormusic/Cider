@@ -89,6 +89,7 @@ jobs:
         APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
         DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
       run: |
+        rm cider-yarn.lock || true
         xcodebuild -version
         yarn install
         cp resources/macPackager.js node_modules/app-builder-lib/out/macPackager.js 
