@@ -3,6 +3,7 @@ dist
 build
 .flatpak*
 yarn-cache
+src/renderer/style.css
 
 # Misc
 .idea
@@ -145,6 +146,9 @@ dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# pnpm 
+pnpm-lock.yaml
 
 ## JetBrains GitIgnore ##
 
@@ -325,3 +329,5 @@ savedconfig/cider-config.json
 savedconfig/config.json
 savedconfig/session.json
 savedconfig/window-state.json
+src/main/base/sample.json
+ 

@@ -1,228 +1,299 @@
-import * as RPC from 'discord-rpc'
+import { AutoClient } from "discord-auto-rpc";
+import { ipcMain } from "electron";
+import fetch from "electron-fetch";
 
-export default class DiscordRichPresence {
+export default class DiscordRPC {
+  /**
+   * Base Plugin Details (Eventually implemented into a GUI in settings)
+   */
+  public name: string = "Discord Rich Presence";
+  public description: string = "Discord RPC plugin for Cider";
+  public version: string = "1.1.0";
+  public author: string = "vapormusic/Core (Cider Collective)";
 
-    /**
-     * Private variables for interaction in plugins
-     */
-    private static _store: any;
-    private static _connection: boolean = false;
+  /**
+   * Private variables for interaction in plugins
+   */
+  private _utils: any;
+  private _attributes: any;
+  private ready: boolean = false;
 
-    /**
-     * Base Plugin Details (Eventually implemented into a GUI in settings)
-     */
-    public name: string = 'Discord Rich Presence';
-    public description: string = 'Discord RPC plugin for Cider';
-    public version: string = '1.0.0';
-    public author: string = 'vapormusic/Core (Cider Collective)';
+  /**
+   * Plugin Initialization
+   */
+  private _client: any = null;
+  private _activityCache: any = {
+    details: "",
+    state: "",
+    largeImageKey: "",
+    largeImageText: "",
+    smallImageKey: "",
+    smallImageText: "",
+    instance: false,
+  };
 
-    /**
-     * Plugin Initialization
-     */
-    private _client: any = null;
-    private _activity: RPC.Presence = {
-        details: '',
-        state: '',
-        largeImageKey: '',
-        largeImageText: '',
-        smallImageKey: '',
-        smallImageText: '',
-        instance: false
-    };
-    private _activityCache: RPC.Presence = {
-        details: '',
-        state: '',
-        largeImageKey: '',
-        largeImageText: '',
-        smallImageKey: '',
-        smallImageText: '',
-        instance: false
-    };
+  /*******************************************************************************************
+   * Public Methods
+   * ****************************************************************************************/
 
-    /*******************************************************************************************
-     * Private Methods
-     * ****************************************************************************************/
+  /**
+   * Runs on plugin load (Currently run on application start)
+   */
+  constructor(utils: any) {
+    this._utils = utils;
+    console.debug(`[Plugin][${this.name}] Loading Complete.`);
+  }
 
-    /**
-     * Connect to Discord
-     * @param clientId
-     * @private
-     */
-    private connect(clientId: any) {
-        if (DiscordRichPresence._store.general.discord_rpc == 0) {
-            return
+  /**
+   * Runs on app ready
+   */
+  onReady(_win: any): void {
+    const self = this;
+    this.connect();
+    console.debug(`[Plugin][${this.name}] Ready.`);
+    ipcMain.on("updateRPCImage", async (_event, imageurl) => {
+      if (!this._utils.getStoreValue("general.privateEnabled")) {
+        let b64data = "";
+        let postbody = "";
+        if (imageurl.startsWith("/ciderlocalart")) {
+          let port = await _win.webContents.executeJavaScript(`app.clientPort`);
+          console.log("http://localhost:" + port + imageurl);
+          const response = await fetch("http://localhost:" + port + imageurl);
+          b64data = (await response.buffer()).toString("base64");
+          postbody = JSON.stringify({ data: b64data });
+          fetch("https://api.cider.sh/v1/images", {
+            method: "POST",
+            body: postbody,
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": _win.webContents.getUserAgent(),
+            },
+          })
+            .then((res) => res.json())
+            .then(function (json) {
+              self._attributes["artwork"]["url"] = json.url;
+              self.setActivity(self._attributes);
+            });
+        } else {
+          postbody = JSON.stringify({ url: imageurl });
+          fetch("https://api.cider.sh/v1/images", {
+            method: "POST",
+            body: postbody,
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": _win.webContents.getUserAgent(),
+            },
+          })
+            .then((res) => res.json())
+            .then(function (json) {
+              self._attributes["artwork"]["url"] = json.url;
+              self.setActivity(self._attributes);
+            });
         }
+      }
+    });
+    ipcMain.on("reloadRPC", () => {
+      console.log(`[DiscordRPC][reload] Reloading DiscordRPC.`);
+      this._client.destroy();
 
-        // Apparently needed for ask to join, join, spectate etc.
-        RPC.register(clientId)
-
-        // Create the client
-        this._client = new RPC.Client({transport: "ipc"});
-
-        // Runs on Ready
-        this._client.on('ready', () => {
-            console.info(`[DiscordRPC][connect] Successfully Connected to Discord. Authed for user: ${this._client.user.id}.`);
+      this._client
+        .endlessLogin({
+          clientId: this._utils.getStoreValue("connectivity.discord_rpc.client") === "Cider" ? "911790844204437504" : "886578863147192350",
         })
-
-        // Handles Errors
-        this._client.on('error', (err: any) => {
-            console.error(`[DiscordRichPresence] ${err}`);
-            this.disconnect()
-        });
-
-        // Login to Discord
-        this._client.login({clientId})
         .then(() => {
-            DiscordRichPresence._connection = true;
+          this.ready = true;
+          this._utils.getWindow().webContents.send("rpcReloaded", this._client.user);
+          if (this._activityCache && this._activityCache.details && this._activityCache.state) {
+            console.info(`[DiscordRPC][reload] Restoring activity cache.`);
+            this._client.setActivity(this._activityCache);
+          }
         })
-        .catch((e: any) => console.error(`[DiscordRichPresence][connect] ${e}`));
+        .catch((e: any) => console.error(`[DiscordRPC][reload] ${e}`));
+      // this.connect(true)
+    });
+  }
+
+  /**
+   * Runs on app stop
+   */
+  onBeforeQuit(): void {
+    console.debug(`[Plugin][${this.name}] Stopped.`);
+  }
+
+  /**
+   * Runs on playback State Change
+   * @param attributes Music Attributes (attributes.status = current state)
+   */
+  onPlaybackStateDidChange(attributes: object): void {
+    this._attributes = attributes;
+    this.setActivity(attributes);
+  }
+
+  /**
+   * Runs on song change
+   * @param attributes Music Attributes
+   */
+  onNowPlayingItemDidChange(attributes: object): void {
+    this._attributes = attributes;
+    this.setActivity(attributes);
+  }
+
+  /*******************************************************************************************
+   * Private Methods
+   * ****************************************************************************************/
+
+  /**
+   * Connect to Discord RPC
+   * @private
+   */
+  private connect() {
+    if (!this._utils.getStoreValue("connectivity.discord_rpc.enabled")) {
+      return;
+    }
+
+    // Create the client
+    this._client = new AutoClient({ transport: "ipc" });
+
+    // Runs on Ready
+    this._client.once("ready", () => {
+      console.info(`[DiscordRPC][connect] Successfully Connected to Discord. Authed for user: ${this._client.user.id}.`);
+
+      if (this._activityCache && this._activityCache.details && this._activityCache.state) {
+        console.info(`[DiscordRPC][connect] Restoring activity cache.`);
+        this._client.setActivity(this._activityCache);
+      }
+    });
+
+    // Login to Discord
+    this._client
+      .endlessLogin({
+        clientId: this._utils.getStoreValue("connectivity.discord_rpc.client") === "Cider" ? "911790844204437504" : "886578863147192350",
+      })
+      .then(() => {
+        this.ready = true;
+      })
+      .catch((e: any) => console.error(`[DiscordRPC][connect] ${e}`));
+  }
+
+  /**
+   * Sets the activity
+   * @param attributes Music Attributes
+   */
+  private setActivity(attributes: any) {
+    if (!this._client) {
+      return;
+    }
+
+    // Check if show buttons is (true) or (false)
+    let activity: Object = {
+      details: this._utils.getStoreValue("connectivity.discord_rpc.details_format"),
+      state: this._utils.getStoreValue("connectivity.discord_rpc.state_format"),
+      largeImageKey: attributes?.artwork?.url?.replace("{w}", "1024").replace("{h}", "1024"),
+      largeImageText: attributes.albumName,
+      instance: false, // Whether the activity is in a game session
+    };
+
+    // Filter the activity
+    activity = this.filterActivity(activity, attributes);
+
+    if (!this.ready) {
+      this._activityCache = activity;
+      return;
+    }
+
+    // Set the activity
+    if (!attributes.status && this._utils.getStoreValue("connectivity.discord_rpc.clear_on_pause")) {
+      this._client.clearActivity();
+    } else if (activity && this._activityCache !== activity) {
+      this._client.setActivity(activity);
+    }
+    this._activityCache = activity;
+  }
+
+  /**
+   * Filter the Discord activity object
+   */
+  private filterActivity(activity: any, attributes: any): Object {
+    // Add the buttons if people want them
+    if (!this._utils.getStoreValue("connectivity.discord_rpc.hide_buttons")) {
+      activity.buttons = [
+        { label: "Listen on Cider", url: attributes.url.cider },
+        { label: "View on Apple Music", url: attributes.url.appleMusic },
+      ]; //To change attributes.url => preload/cider-preload.js
+    }
+
+    // Add the timestamp if its playing and people want them
+    if (!this._utils.getStoreValue("connectivity.discord_rpc.hide_timestamp") && attributes.status) {
+      activity.startTimestamp = Date.now() - (attributes?.durationInMillis - attributes?.remainingTime);
+      activity.endTimestamp = attributes.endTime;
+    }
+
+    // If the user wants to keep the activity when paused
+    if (!this._utils.getStoreValue("connectivity.discord_rpc.clear_on_pause")) {
+      activity.smallImageKey = attributes.status ? "play" : "pause";
+      activity.smallImageText = attributes.status ? "Playing" : "Paused";
     }
 
     /**
-     * Disconnects from Discord RPC
+     * Works with:
+     * {artist}
+     * {composer}
+     * {title}
+     * {album}
+     * {trackNumber}
      */
-    private disconnect() {
-        if (!this._client) return;
+    const rpcVars: any = {
+      artist: attributes.artistName,
+      composer: attributes.composerName,
+      title: attributes.name,
+      album: attributes.albumName,
+      trackNumber: attributes.trackNumber,
+    };
 
-        this._client.destroy().then(() => {
-            DiscordRichPresence._connection = false;
-            console.log('[DiscordRPC][disconnect] Disconnected from discord.')
-        }).catch((e: any) => console.error(`[DiscordRPC][disconnect] ${e}`));
+    // Replace the variables
+    Object.keys(rpcVars).forEach((key) => {
+      if (activity.details.includes(`{${key}}`)) {
+        activity.details = activity.details.replace(`{${key}}`, rpcVars[key]);
+      }
+      if (activity.state.includes(`{${key}}`)) {
+        activity.state = activity.state.replace(`{${key}}`, rpcVars[key]);
+      }
+    });
+
+    // Checks if the details is greater than 128 because some songs can be that long
+    if (activity.details && activity.details.length >= 128) {
+      activity.details = activity.details.substring(0, 125) + "...";
     }
 
-	/**
-	 * Filter the Discord activity object
-	 */
-	private filterActivity(activity: any, attributes: any): Object {
-		
-		// Checks if the name is greater than 128 because some songs can be that long
-        if (activity.details && activity.details.length > 128) {
-            activity.details = activity.details.substring(0, 125) + '...'
-        }
-
-		// Check large image
-        if (activity.largeImageKey === null || activity.largeImageKey === ""){
-            activity.largeImageKey = "cider";
-        }
-
-		// Timestamp 
-		if (new Date(attributes.endTime).getTime() < 0) {
-			delete activity.startTime
-			delete activity.endTime
-		}
-
-		// not sure
-		if (!attributes.artistName) {
-			delete activity.state;
-		}
-
-		if (!activity.largeImageText || activity.largeImageText.length < 2) {
-            delete activity.largeImageText
-        }
-
-		activity.buttons.forEach((key: {label: string, url: string}, _v: Number) => {
-			if (key.url.includes('undefined') || key.url.includes('no-id-found')) {
-                activity.buttons.splice(key, 1);
-			}
-		})
-		return activity
-	}
-
-    /**
-     * Sets the activity of the client
-     * @param {object} attributes
-     */
-    private updateActivity(attributes: any) {
-        if (!this._client) return;
-
-        if (!DiscordRichPresence._connection) {
-            this._client.clearActivity().catch((e: any) => console.error(`[DiscordRichPresence][clearActivity] ${e}`));
-            return;
-        }
-
-        this._activity = {
-            details: attributes.name,
-            state: `${attributes.artistName ? `by ${attributes.artistName}` : ''}`,
-            startTimestamp: attributes.startTime,
-            endTimestamp: attributes.endTime,
-            largeImageKey: attributes.artwork.url.replace('{w}', '1024').replace('{h}', '1024'),
-            largeImageText: attributes.albumName,
-            instance: false, // Whether the activity is in a game session
-            buttons: [
-                {label: "Listen on Cider", url: attributes.url.cider},
-                {label: "View on Apple Music", url: attributes.url.appleMusic},
-            ]
-        };
-
-		this._activity = this.filterActivity(this._activity, attributes)
-
-        // Check if its pausing (false) or playing (true)
-        if (!attributes.status) {
-            if (DiscordRichPresence._store.general.discord_rpc_clear_on_pause) {
-                this._client.clearActivity()
-                .catch((e: any) => console.error(`[DiscordRichPresence][clearActivity] ${e}`));
-            } else {
-                this._activity.smallImageKey = 'pause';
-                this._activity.smallImageText = 'Paused';
-                delete this._activity.endTimestamp;
-                delete this._activity.startTimestamp;
-                this._client.setActivity(this._activity)
-                .catch((e: any) => console.error(`[DiscordRichPresence][setActivity] ${e}`));
-            }
-
-        } else if (this._activity && this._activityCache !== this._activity && this._activity.details) {
-            if (!DiscordRichPresence._store.general.discord_rpc_clear_on_pause) {
-                this._activity.smallImageKey = 'play';
-                this._activity.smallImageText = 'Playing';
-            }
-
-            this._client.setActivity(this._activity)
-            .catch((e: any) => console.error(`[DiscordRichPresence][updateActivity] ${e}`));
-            this._activityCache = this._activity;
-        }
-
+    // Checks if the state is greater than 128 because some songs can be that long
+    if (activity.state && activity.state.length >= 128) {
+      activity.state = activity.state.substring(0, 125) + "...";
     }
 
-    /*******************************************************************************************
-     * Public Methods
-     * ****************************************************************************************/
-
-    /**
-     * Runs on plugin load (Currently run on application start)
-     */
-    constructor(_app: any, store: any) {
-        DiscordRichPresence._store = store
-        console.debug(`[Plugin][${this.name}] Loading Complete.`);
+    // Checks if the state is greater than 128 because some songs can be that long
+    if (activity.largeImageText && activity.largeImageText.length >= 128) {
+      activity.largeImageText = activity.largeImageText.substring(0, 125) + "...";
     }
 
-    /**
-     * Runs on app ready
-     */
-    onReady(_win: any): void {
-        this.connect((DiscordRichPresence._store.general.discord_rpc == 1) ? '911790844204437504' : '886578863147192350');
-        console.debug(`[Plugin][${this.name}] Ready.`);
+    // Check large image
+    if (activity.largeImageKey == null || activity.largeImageKey === "" || activity.largeImageKey.length > 256) {
+      activity.largeImageKey = "cider";
     }
 
-    /**
-     * Runs on app stop
-     */
-    onBeforeQuit(): void {
-        console.debug(`[Plugin][${this.name}] Stopped.`);
+    // Timestamp
+    if (new Date(attributes.endTime).getTime() < 0) {
+      delete activity.startTime;
+      delete activity.endTime;
     }
 
-    /**
-     * Runs on playback State Change
-     * @param attributes Music Attributes (attributes.status = current state)
-     */
-    onPlaybackStateDidChange(attributes: object): void {
-        this.updateActivity(attributes)
+    // not sure
+    if (!attributes.artistName) {
+      delete activity.state;
     }
 
-    /**
-     * Runs on song change
-     * @param attributes Music Attributes
-     */
-    onNowPlayingItemDidChange(attributes: object): void {
-        this.updateActivity(attributes)
+    if (!activity.largeImageText || activity.largeImageText.length < 2) {
+      delete activity.largeImageText;
     }
+    return activity;
+  }
 }

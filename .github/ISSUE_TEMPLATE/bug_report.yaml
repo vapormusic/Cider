@@ -1,7 +1,7 @@
 name: Bug Report
 description: If you encounter an issue whilst using our app, please use this template to help improve the app.
 title: "[Bug]: "
-labels: ["bug", "triage"]
+labels: ["bug", "needs-triage"]
 assignees: []
 body:
   - type: markdown
@@ -33,12 +33,12 @@ body:
       description: |
         Examples:
           - **OS**: Ubuntu 20.04
-          - **App Version**: 1.0.0
-          - **Commit ID**: c9d43be
+          - **App Version** and/or **Commit ID**: 1.0.0 c9d43be
+        
+        To find app version, Cider Menu -> About
       value: |
         - OS:
-        - App Version:
-        - Commit ID:
+        - App Version and/or Commit ID:
     validations:
       required: true
   - type: textarea
@@ -54,5 +54,13 @@ body:
       label: Code of Conduct
       description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/ciderapp/Cider/blob/main/CODE_OF_CONDUCT.md)
       options:
-        - label: I agree to follow this project's Code of Conduct
+        - label: I agree to follow this Cider's [Code of Conduct](https://github.com/ciderapp/Cider/blob/main/CODE_OF_CONDUCT.md)
+          required: true
+  - type: checkboxes
+    id: disclaimer
+    attributes:
+      label: Disclaimer
+      description: By submitting this issue, you are aware of our [Support Disclaimer](https://docs.cider.sh/support/disclaimer) and acknowledge that your issue may be immidiately closed if it is invalid.
+      options:
+        - label: I acknowledge the [Support Disclaimer](https://docs.cider.sh/support/disclaimer)
           required: true

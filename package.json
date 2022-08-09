@@ -2,77 +2,99 @@
   "name": "cider",
   "applicationId": "Cider",
   "productName": "Cider",
-  "version": "1.1.0",
-  "description": "A new look into listening and enjoying music in style and performance.",
+  "version": "1.5.4",
+  "description": "A new cross-platform Apple Music experience based on Electron and Vue.js written from scratch with performance in mind.",
   "license": "AGPL-3.0",
   "main": "./build/index.js",
   "author": "Cider Collective <cryptofyre@cider.sh> (https://cider.sh)",
-  "repository": "https://github.com/ciderapp/Cider.git",
+  "repository": "github:ciderapp/Cider",
   "bugs": {
     "url": "https://github.com/ciderapp/Cider/issues?q=is%3Aopen+is%3Aissue+label%3Abug"
   },
   "homepage": "https://cider.sh/",
   "buildResources": "resources",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && yarn compile-less",
+    "compile-less": "lessc ./src/renderer/style.less ./src/renderer/style.css",
     "watch": "tsc --watch",
-    "test": "yarn build && playwright test",
     "start": "run-script-os",
     "start:win32": "yarn build && set ELECTRON_ENABLE_LOGGING=true && electron ./build/index.js --enable-accelerated-mjpeg-decode --enable-accelerated-video --disable-gpu-driver-bug-workarounds --ignore-gpu-blacklist --enable-native-gpu-memory-buffers",
     "start:linux": "yarn build && ELECTRON_ENABLE_LOGGING=true && electron ./build/index.js --enable-accelerated-mjpeg-decode --enable-accelerated-video --disable-gpu-driver-bug-workarounds --ignore-gpu-blacklist --enable-native-gpu-memory-buffers",
     "start:darwin": "yarn build && ELECTRON_ENABLE_LOGGING=true && electron ./build/index.js --enable-accelerated-mjpeg-decode --enable-accelerated-video --disable-gpu-driver-bug-workarounds --ignore-gpu-blacklist --enable-native-gpu-memory-buffers",
+    "start-renderer": "run-script-os",
+    "start-renderer:win32": "set ELECTRON_ENABLE_LOGGING=true && electron ./build/index.js --enable-accelerated-mjpeg-decode --enable-accelerated-video --disable-gpu-driver-bug-workarounds --ignore-gpu-blacklist --enable-native-gpu-memory-buffers",
+    "start-renderer:linux": "ELECTRON_ENABLE_LOGGING=true && electron ./build/index.js --enable-accelerated-mjpeg-decode --enable-accelerated-video --disable-gpu-driver-bug-workarounds --ignore-gpu-blacklist --enable-native-gpu-memory-buffers",
+    "start-renderer:darwin": "ELECTRON_ENABLE_LOGGING=true && electron ./build/index.js --enable-accelerated-mjpeg-decode --enable-accelerated-video --disable-gpu-driver-bug-workarounds --ignore-gpu-blacklist --enable-native-gpu-memory-buffers",
     "pack": "electron-builder --dir",
     "dist": "yarn build && electron-builder",
-    "dist:macarm" : "yarn build && electron-builder --mac --arm64",
-    "dist:universalNotWorking": "yarn build && electron-builder --mac --universal", 
+    "dist:macarm": "yarn build && electron-builder --mac --arm64",
+    "dist:universalNotWorking": "yarn build && electron-builder --mac --universal",
     "dist:all": "yarn build && electron-builder -mwl",
+    "testdist": "yarn build && electron-builder --dir",
+    "winget": "yarn build && electron-builder --win -c winget.json",
     "msft": "yarn build && electron-builder -c msft-package.json",
+    "mstest": "yarn build && electron-builder -c msft-test.json",
     "postinstall": "electron-builder install-app-deps",
-    "circle:append-bid": "node resources/appendCommitToVersion"
+    "prettier": "npx prettier --write '**/*.{js,json,ts,css,less}'"
   },
   "dependencies": {
-    "@sentry/electron": "^2.5.4",
-    "@sentry/integrations": "^6.17.4",
-    "discord-rpc": "^4.0.1",
-    "ejs": "^3.1.6",
+    "@sentry/electron": "^3.0.7",
+    "@sentry/integrations": "^7.8.1",
+    "@types/pouchdb": "^6.4.0",
+    "@types/pouchdb-node": "^6.1.4",
+    "adm-zip": "0.4.10",
+    "airtunes2": "git+https://github.com/ciderapp/node_airtunes2.git",
+    "castv2-client": "^1.2.0",
+    "chokidar": "^3.5.3",
+    "discord-auto-rpc": "^1.0.17",
+    "dns-js": "git+https://github.com/ciderapp/node-dns-js.git",
+    "ejs": "^3.1.8",
     "electron-fetch": "^1.7.4",
-    "electron-log": "^4.4.5",
-    "electron-notarize": "^1.1.1",
-    "electron-store": "^8.0.1",
-    "electron-updater": "^4.6.1",
+    "electron-log": "^4.4.8",
+    "electron-notarize": "^1.2.1",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^5.2.1",
     "electron-window-state": "^5.0.3",
-    "express": "^4.17.2",
-    "get-port": "^5.1.1",
-    "jsonc": "^2.0.0",
+    "express": "^4.18.1",
+    "get-port": "5.1.1",
+    "jimp": "^0.16.1",
     "lastfmapi": "^0.1.1",
-    "mdns-js": "git+https://github.com/bitfocus/node-mdns-js.git",
+    "level": "^8.0.0",
+    "leveldown": "^6.1.1",
+    "mdns-js": "git+https://github.com/ciderapp/node-mdns-js.git",
     "mpris-service": "^2.1.2",
-    "music-metadata": "^7.11.4",
-    "node-gyp": "^8.4.1",
-    "qrcode": "^1.5.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "music-metadata": "^7.12.5",
+    "node-gyp": "^9.1.0",
+    "node-ssdp": "^4.0.1",
+    "pouchdb-adapter-leveldb": "^7.3.0",
+    "pouchdb-node": "^7.3.0",
+    "pouchdb-upsert": "^2.2.0",
+    "qrcode": "^1.5.1",
+    "request": "^2.88.2",
     "run-script-os": "^1.1.6",
     "source-map-support": "^0.5.21",
-    "typescript": "^4.5.5",
+    "ts-md5": "^1.2.11",
     "v8-compile-cache": "^2.3.0",
-    "ws": "^8.4.2",
+    "wallpaper": "5.0.1",
+    "ws": "^8.8.1",
     "xml2js": "^0.4.23",
     "youtube-search-without-api-key": "^1.0.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.18.1",
-    "@types/discord-rpc": "^4.0.0",
+    "@types/adm-zip": "^0.5.0",
+    "@types/discord-rpc": "4.0.3",
     "@types/express": "^4.17.13",
     "@types/qrcode-terminal": "^0.12.0",
-    "@types/ws": "^8.2.2",
-    "electron": "git+https://github.com/castlabs/electron-releases.git",
-    "electron-builder": "^22.14.13",
+    "@types/ws": "^8.5.3",
+    "electron": "git+https://github.com/castlabs/electron-releases.git#18-x-y",
+    "electron-builder": "^23.3.3",
+    "electron-builder-notarize-pkg": "^1.2.0",
     "electron-webpack": "^2.8.2",
+    "less": "^4.1.3",
     "musickit-typescript": "^1.2.4",
-    "playwright": "^1.18.1",
+    "typescript": "^4.7.4",
     "vue-devtools": "^5.1.4",
-    "webpack": "~5.65.0"
+    "webpack": "~5.74.0"
   },
   "fileAssociations": [
     {
@@ -97,9 +119,9 @@
     }
   ],
   "build": {
-    "electronVersion": "16.0.8",
+    "electronVersion": "18.3.5",
     "electronDownload": {
-      "version": "16.0.8+wvcus",
+      "version": "18.3.5+wvcus",
       "mirror": "https://github.com/castlabs/electron-releases/releases/download/v"
     },
     "appId": "cider",
@@ -148,7 +170,39 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "license": "LICENSE",
-      "deleteAppDataOnUninstall": true
+      "deleteAppDataOnUninstall": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "pkg": {
+      "installLocation": "/Applications",
+      "background": {
+        "file": "./resources/bg.png",
+        "alignment": "bottomleft"
+      },
+      "allowAnywhere": true,
+      "allowCurrentUserHome": true,
+      "allowRootDirectory": true,
+      "license": "./resources/license.txt",
+      "isVersionChecked": false,
+      "isRelocatable": false,
+      "overwriteAction": "upgrade"
+    },
+    "snap": {
+      "slots": [
+        {
+          "mpris": {
+            "interface": "mpris"
+          }
+        }
+      ]
+    },
+    "dmg": {
+      "background": "./resources/bg.tiff",
+      "icon": "resources/icons/icon.ico"
+    },
+    "mas": {
+      "entitlements": "./resources/entitlements.mac.plist",
+      "entitlementsInherit": "./resources/entitlements.mac.plist"
     },
     "win": {
       "target": [
@@ -170,7 +224,10 @@
       "darkModeSupport": true,
       "target": [
         "dmg"
-      ]
+      ],
+      "extendInfo": {
+        "NSUserNotificationAlertStyle": "alert"
+      }
     }
   }
 }

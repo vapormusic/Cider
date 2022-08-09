@@ -2,13 +2,16 @@
     <vue-horizontal>
         <template v-if="browsesp">
             <mediaitem-mvview-sp
-                    :item="item ? (item.attributes.kind ? item : ((item.relationships && item.relationships.contents ) ? item.relationships.contents.data[0] : item)) : []"
+                    :item="
+                    ((item?.attributes?.kind != null || item?.attributes?.type == 'editorial-elements')
+                     ? item :
+                     ((item.relationships && item.relationships.contents ) ? item.relationships.contents.data[0] : item)) ?? (item)"
                     :imagesize="imagesize"
-                    :badge="item.attributes" v-for="item in items"></mediaitem-mvview-sp>
+                    :badge="item.attributes ?? [] " v-for="item in items"></mediaitem-mvview-sp>
         </template>
         <template v-else>
-            <mediaitem-square :kind="kind" size="600"
-                              :item="item ? (item.attributes.kind ? item : ((item.relationships && item.relationships.contents ) ? item.relationships.contents.data[0] : item)) : []"
+            <mediaitem-square :kind="kind" size="600" :key="item?.id ?? ''"
+                              :item="item ? ((item.attributes?.kind != null || item.type == 'editorial-elements') ? item : ((item.relationships && item.relationships.contents ) ? item.relationships.contents.data[0] : item)) : []"
                               :imagesize="imagesize"
                               v-for="item in items"></mediaitem-square>
         </template>
@@ -17,32 +20,34 @@
 
 
 <script>
-    Vue.component('mediaitem-scroller-horizontal-mvview', {
-        template: '#mediaitem-scroller-horizontal-mvview',
-        props: {
-            items: {
-                type: Array,
-                required: true
-            },
-            imagesize: {
-                type: Number,
-                required: false
-            },
-            browsesp: {
-                type: Boolean,
-                required: false
-            },
-            kind: {
-                type: String,
-                required: false,
-                default: ""
-            }
-        },
-        data: function () {
-            return {
-                app: this.$root,
-            }
-        },
-        methods: {}
-    });
+  Vue.component('mediaitem-scroller-horizontal-mvview', {
+    template: '#mediaitem-scroller-horizontal-mvview',
+    props: {
+      items: {
+        type: Array,
+        required: true
+      },
+      imagesize: {
+        type: Number,
+        required: false
+      },
+      browsesp: {
+        type: Boolean,
+        required: false
+      },
+      kind: {
+        type: String,
+        required: false,
+        default: ""
+      }
+    },
+    data: function() {
+      return {
+        app: this.$root,
+      }
+    },
+    // mounted(){
+    //     console.log('hes',this.items)
+    // }
+  });
 </script>
