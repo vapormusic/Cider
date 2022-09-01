@@ -10,7 +10,8 @@
                             @click="$root.appRoute('search');"
                             @focus="$root.search.showHints = true"
                             @blur="$root.setTimeout(()=>{$root.search.showHints = false}, 300)"
-                            v-on:keyup.enter="$root.searchQuery();$root.search.showHints = false"
+                            v-on:keyup.enter="$root.searchQuery();$root.search.showHints = false;$root.search.cursor = -1"
+                            v-on:keyup="$root.searchCursor"
                             @change="$root.appRoute('search');"
                             @input="$root.getSearchHints()"
                             :placeholder="$root.getLz('term.search') + '...'"
@@ -27,7 +28,7 @@
                             <button
                                     class="search-hint text-overflow-elipsis"
                                     v-for="hint in $root.search.hints"
-                                    @click="$root.search.term = hint;$root.search.showHints = false;$root.searchQuery(hint)"
+                                    @click="$root.search.term = hint;$root.search.showHints = false;$root.searchQuery(hint);$root.search.cursor = -1"
                             >
                                 {{ hint }}
                             </button>
@@ -138,7 +139,7 @@
                 >
                 </sidebar-library-item>
             </template>
-            <template v-if="$root.cfg.libraryPrefs.localPaths.length != 0">
+            <!-- <template v-if="$root.cfg.libraryPrefs.localPaths.length != 0">
                 <div class="app-sidebar-header-text"
                      @click="$root.cfg.general.sidebarCollapsed.localLibrary = !$root.cfg.general.sidebarCollapsed.localLibrary"
                      :class="{collapsed: $root.cfg.general.sidebarCollapsed.localLibrary}">
@@ -147,7 +148,7 @@
                 <template v-if="!$root.cfg.general.sidebarCollapsed.localLibrary">
                     <sidebar-playlist :item="{attributes: { name:'Songs'} , id:'ciderlocal'}"></sidebar-playlist>
                 </template>
-            </template>
+            </template> -->
             <template v-if="$root.getPlaylistFolderChildren('p.applemusic').length != 0">
                 <div
                         class="app-sidebar-header-text"
@@ -189,11 +190,7 @@
             </template>
         </div>
         <div class="app-sidebar-footer display--small app-sidebar-footer--controls">
-            <div
-                    class="app-playback-controls"
-                    v-if="$root.mkReady()"
-                    @contextmenu="$root.nowPlayingContextMenu"
-            >
+            <div class="app-playback-controls" @contextmenu="$root.nowPlayingContextMenu">
                 <div class="control-buttons">
                     <div class="app-chrome-item">
                         <button
@@ -295,15 +292,9 @@
                 </div>
             </div>
         </div>
-        <div
-                class="app-sidebar-notification backgroundNotification"
-                v-if="$root.library.backgroundNotification.show"
-        >
+        <div class="app-sidebar-notification backgroundNotification" v-if="$root.library.backgroundNotification.show" >
             <div class="message">
-                {{ $root.library.backgroundNotification.message }} ({{
-                $root.library.backgroundNotification.progress
-                }}
-                / {{ $root.library.backgroundNotification.total }})
+                {{ $root.library.backgroundNotification.message }} ({{$root.library.backgroundNotification.progress }} / {{ $root.library.backgroundNotification.total }})
             </div>
         </div>
     </div>
@@ -311,6 +302,6 @@
 
 <script>
   Vue.component("cider-app-sidebar", {
-    template: "#cider-app-sidebar"
+    template: "#cider-app-sidebar",
   })
 </script>

@@ -4,6 +4,7 @@ build
 .flatpak*
 yarn-cache
 src/renderer/style.css
+.pnpm-store
 
 # Misc
 .idea
@@ -146,9 +147,6 @@ dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-
-# pnpm 
-pnpm-lock.yaml
 
 ## JetBrains GitIgnore ##
 
@@ -330,4 +328,4 @@ savedconfig/config.json
 savedconfig/session.json
 savedconfig/window-state.json
 src/main/base/sample.json
- 
+

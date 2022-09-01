@@ -34,9 +34,11 @@ export default class RAOP {
   private worker: any = null;
 
   private processNode = `
-    import {parentPort, workerData} from "worker_threads";
+  const {
+    Worker, isMainThread, parentPort, workerData
+  } = require('node:worker_threads');
     function getAudioConv (buffers) {
-        
+
         function interleave16(leftChannel, rightChannel) {
             var length = leftChannel.length + rightChannel.length;
             var result = new Int16Array(length);
@@ -87,29 +89,43 @@ export default class RAOP {
 
   private ondeviceup(name: any, host: any, port: any, addresses: any, text: any, airplay2: any = null) {
     // console.log(this.castDevices.findIndex((item: any) => {return (item.name == host.replace(".local","") && item.port == port )}))
+    let shown_name = name;
+    try {
+      let model = text.filter((u: any) => String(u).startsWith("model="));
+      let manufacturer = text.filter((u: any) => String(u).startsWith("manufacturer="));
+      let name1 = text.filter((u: any) => String(u).startsWith("name="));
+      if (name1.length > 0) {
+        shown_name = name1[0].split("=")[1];
+      } else if (manufacturer.length > 0) {
+        shown_name = (manufacturer.length > 0 ? manufacturer[0].substring(13) : "") + " " + (model.length > 0 ? model[0].substring(6) : "");
+        shown_name = shown_name.trim().length > 1 ? shown_name : (host ?? "Unknown").replace(".local", "");
+      }
+    } catch (e) {}
+    let host_name = addresses != null && typeof addresses == "object" && addresses.length > 0 ? addresses[0] : typeof addresses == "string" ? addresses : "";
+
     if (
       this.castDevices.findIndex((item: any) => {
-        return item != null && item.name == (host ?? "Unknown").replace(".local", "") && item.port == port && item.host == (addresses ? addresses[0] : "");
+        return item != null && item.name == shown_name && item.host == host_name && item.host != "Unknown";
       }) == -1
     ) {
       this.castDevices.push({
-        name: (host ?? "Unknown").replace(".local", ""),
-        host: addresses ? addresses[0] : "",
+        name: shown_name,
+        host: host_name,
         port: port,
         addresses: addresses,
         txt: text,
         airplay2: airplay2,
       });
-      if (this.devices.indexOf(host) === -1) {
-        this.devices.push(host);
-      }
-      if (name) {
-        this._win.webContents.executeJavaScript(`console.log('deviceFound','ip: ${host} name:${name}')`).catch((err: any) => console.error(err));
-        console.log("deviceFound", host, name);
+      // if (this.devices.indexOf(host_name) === -1) {
+      //   this.devices.push(host_name);
+      // }
+      if (shown_name) {
+        this._win.webContents.executeJavaScript(`console.log('deviceFound','ip: ${host_name} name:${shown_name}')`).catch((err: any) => console.error(err));
+        console.log("deviceFound", host_name, shown_name);
       }
     } else {
-      this._win.webContents.executeJavaScript(`console.log('deviceFound (added)','ip: ${host} name:${name}')`).catch((err: any) => console.error(err));
-      console.log("deviceFound (added)", host, name);
+      this._win.webContents.executeJavaScript(`console.log('deviceFound (added)','ip: ${host_name} name:${shown_name}')`).catch((err: any) => console.error(err));
+      console.log("deviceFound (added)", host_name, shown_name);
     }
   }
 
@@ -152,9 +168,10 @@ export default class RAOP {
         if (service.addresses && service.fullname && service.fullname.includes("_raop._tcp")) {
           // console.log(service.txt)
           this._win.webContents.executeJavaScript(`console.log(
-                    "${service.name} ${service.host}:${service.port} ${service.addresses}"
+                    "${service.name} ${service.host}:${service.port} ${service.addresses} ${service.fullname}" 
                 )`);
-          this.ondeviceup(service.name, service.host, service.port, service.addresses, service.txt);
+          let itemname = service.fullname.substring(service.fullname.indexOf("@") + 1, service.fullname.indexOf("._raop._tcp"));
+          this.ondeviceup(itemname, service.host, service.port, service.addresses, service.txt);
         }
       });
 
@@ -167,7 +184,8 @@ export default class RAOP {
           this._win.webContents.executeJavaScript(`console.log(
                     "${service.name} ${service.host}:${service.port} ${service.addresses}"
                 )`);
-          this.ondeviceup(service.name, service.host, service.port, service.addresses, service.txt, true);
+          let itemname = service.fullname.substring(service.fullname.indexOf("@") + 1, service.fullname.indexOf("._airplay._tcp"));
+          this.ondeviceup(itemname, service.host, service.port, service.addresses, service.txt, true);
         }
       });
 
@@ -194,11 +212,12 @@ export default class RAOP {
         this.portairplay = ipport;
         this.device = this.airtunes.add(ipv4, {
           port: ipport,
-          volume: 50,
+          volume: airplay2dv ? 30 : 50,
           password: sepassword,
           txt: txt,
           airplay2: airplay2dv,
-          debug: true,
+          debug: null,
+          forceAlac: false,
         });
         // console.log('lol',txt)
         this.device.on("status", (status: any) => {
@@ -217,14 +236,15 @@ export default class RAOP {
             this._win.webContents.executeJavaScript(`app.sendAirPlayFailed()`);
           }
           if (status == "stopped") {
-            this.airtunes.stopAll(() => {
-              console.log("end");
-            });
-            this.airtunes = null;
-            this.device = null;
-            this.ipairplay = "";
-            this.portairplay = "";
-            this.ok = 1;
+            // this.airtunes.stopAll(() => {
+            //   console.log("end");
+            // });
+            // this._win.webContents.executeJavaScript(`app.airplayDisconnect(true, ${[ipv4, ipport, sepassword, title, artist, album, artworkURL, txt, airplay2dv]})`).catch((err: any) => console.error(err));
+            // this.airtunes = null;
+            // this.device = null;
+            // this.ipairplay = "";
+            // this.portairplay = "";
+            // this.ok = 1;
           } else {
             setTimeout(() => {
               if (this.ok == 1) {
@@ -246,14 +266,20 @@ export default class RAOP {
       }
     });
 
+    electron.ipcMain.on("setAirPlayVolume", (event, volume) => {
+      if (this.device) {
+        this.device.setVolume(volume);
+      }
+    });
+
     electron.ipcMain.on("writeWAV", (event, leftbuffer, rightbuffer) => {
       if (this.airtunes != null) {
         if (this.worker == null) {
           try {
-            const toDataUrl = (js: any) => new URL(`data:text/javascript,${encodeURIComponent(js)}`);
+            // const toDataUrl = (js: any) => new URL(`data:text/javascript,${encodeURIComponent(js)}`);
             // let blob = new Blob([this.processNode], { type: 'application/javascript' });
             //Create new worker
-            this.worker = new Worker(toDataUrl(this.processNode));
+            this.worker = new Worker(this.processNode, { eval: true });
 
             //Listen for a message from worker
             this.worker.on("message", (result: any) => {
@@ -265,7 +291,7 @@ export default class RAOP {
             });
 
             this.worker.on("error", (error: any) => {
-              console.log("bruh", error);
+              console.log("worker err", error);
             });
             this.worker.postMessage({ buffer: [leftbuffer, rightbuffer] });
           } catch (e) {
@@ -300,6 +326,7 @@ export default class RAOP {
       this.airtunes.stopAll(function () {
         console.log("end");
       });
+      this._win.webContents.executeJavaScript("app.airplayDisconnect(false)").catch((err: any) => console.error(err));
       this.airtunes = null;
       this.device = null;
       this.ipairplay = "";
@@ -316,7 +343,7 @@ export default class RAOP {
       }
     });
 
-    electron.ipcMain.on("updateRPCImage", (_event, imageurl) => {
+    electron.ipcMain.on("discordrpc:updateImage", (_event, imageurl) => {
       this.uploadImageAirplay(imageurl);
     });
   }

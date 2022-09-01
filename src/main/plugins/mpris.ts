@@ -27,7 +27,6 @@ export default class mpris {
    */
   constructor(utils: any) {
     mpris.utils = utils;
-
     console.debug(`[Plugin][${mpris.name}] Loading Complete.`);
   }
 

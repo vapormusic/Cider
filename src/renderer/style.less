@@ -724,6 +724,7 @@ input[type="range"].web-slider::-webkit-slider-runnable-track {
 
 .search-hints-container {
   top: 44px;
+  background: rgb(30 30 30);
   #cmenu.container();
 
   .search-hints {
@@ -731,6 +732,10 @@ input[type="range"].web-slider::-webkit-slider-runnable-track {
 
     .search-hint {
       #cmenu.item();
+
+      &.active {
+        background: var(--keyColor);
+      }
     }
   }
 }
@@ -902,6 +907,7 @@ input[type="range"].web-slider::-webkit-slider-runnable-track {
 
   > ._svg-icon {
     --size: var(--iconSize);
+    flex-shrink: 0;
   }
 }
 
@@ -1320,6 +1326,7 @@ body[platform="darwin"] .app-chrome .app-chrome-item > .window-controls > div.cl
     margin-left: 0.5em !important;
     flex: 1;
   }
+
   .spatial-icon {
     background-image: url("./assets/spatialization.svg") !important;
     margin-left: 0.5em !important;
@@ -1609,6 +1616,7 @@ input[type="range"].web-slider.display--small::-webkit-slider-thumb {
 @media only screen and (max-width: 1120px) {
   .display--small {
     display: inherit !important;
+
     .slider {
       width: 100%;
       z-index: 1;
@@ -1974,6 +1982,10 @@ input[type="range"].web-slider.display--small::-webkit-slider-thumb {
 
     &.twitterBtn {
       background-color: #1d9bf0;
+    }
+
+    &.qqBtn {
+      background-color: #d32f2f;
     }
   }
 }

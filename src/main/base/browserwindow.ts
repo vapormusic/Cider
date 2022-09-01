@@ -121,6 +121,11 @@ export class BrowserWindow {
       ],
       appRoutes: [
         {
+          page: "lzedit",
+          component: `<i18n-editor></i18n-editor>`,
+          condition: "$root.page == 'lzedit'",
+        },
+        {
           page: "library-recentlyadded",
           component: `<cider-recentlyadded></cider-recentlyadded>`,
           condition: "$root.page == 'library-recentlyadded'",
@@ -333,7 +338,7 @@ export class BrowserWindow {
       contextIsolation: false,
       webviewTag: true,
       plugins: true,
-      nodeIntegrationInWorker: false,
+      nodeIntegrationInWorker: true,
       webSecurity: false,
       preload: join(utils.getPath("srcPath"), "./preload/cider-preload.js"),
     },
@@ -614,6 +619,8 @@ export class BrowserWindow {
         const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
         if (!this.chromecastIP.includes(ip)) {
           this.headerSent = false;
+          this.audioStream._readableState.buffer.clear();
+          this.audioStream._readableState.length = 0;
           this.chromecastIP.push(ip);
         }
         req.socket.setTimeout(Number.MAX_SAFE_INTEGER);
@@ -1173,13 +1180,14 @@ export class BrowserWindow {
 		    `);
     });
 
-    ipcMain.handle("scanLibrary", async (event, folders) => {
-      const oldmetadatalist = await LocalFiles.sendOldLibrary();
-      BrowserWindow.win.webContents.send("getUpdatedLocalList", oldmetadatalist);
-      const metadatalist = await LocalFiles.scanLibrary();
-      BrowserWindow.win.webContents.send("getUpdatedLocalList", metadatalist);
-      LocalFiles.cleanUpDB();
-    });
+    // ipcMain.handle("scanLibrary", async (event, folders) => {
+    //   // const oldmetadatalist = await LocalFiles.sendOldLibrary();
+    //   // BrowserWindow.win.webContents.send("getUpdatedLocalList", oldmetadatalist);
+    //   const metadatalist = await LocalFiles.scanLibrary();
+    //   BrowserWindow.win.webContents.send("getUpdatedLocalList", metadatalist);
+    //   LocalFiles.localSongs = metadatalist;
+    //   // LocalFiles.cleanUpDB();
+    // });
 
     LocalFiles.eventEmitter.on("newtracks", (data) => {
       BrowserWindow.win.webContents.send("getUpdatedLocalList", data);
@@ -1444,15 +1452,13 @@ export class BrowserWindow {
       if ((process.platform === "darwin" || utils.getStoreValue("general.close_button_hide")) && !isQuitting) {
         e.preventDefault();
         win.hide();
-      }
-    });
-
-    win.on("closed", (_: any) => {
-      win.webContents.executeJavaScript(`
+      } else {
+        win.webContents.executeJavaScript(`
             window.localStorage.setItem("currentTrack", JSON.stringify(app.mk.nowPlayingItem));
             window.localStorage.setItem("currentTime", JSON.stringify(app.mk.currentPlaybackTime));
             window.localStorage.setItem("currentQueue", JSON.stringify(app.mk.queue._unplayedQueueItems));
             ipcRenderer.send('stopGCast','');`);
+      }
     });
 
     app.on("before-quit", () => {

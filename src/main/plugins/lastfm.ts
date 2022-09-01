@@ -15,7 +15,6 @@ export default class lastfm {
    */
   private _lfm: any = null;
   private _authenticated: boolean = false;
-  private _scrobbleDelay: any = null;
   private _utils: any = null;
   private _scrobbleCache: any = {};
   private _nowPlayingCache: any = {};
@@ -30,7 +29,9 @@ export default class lastfm {
 
   onReady(_win: Electron.BrowserWindow): void {
     this.initializeLastFM("", this._apiCredentials);
+  }
 
+  onRendererReady(): void {
     // Register the ipcMain handlers
     this._utils.getIPCMain().handle("lastfm:url", (event: any) => {
       console.debug(`[${lastfm.name}:url] Called.`);
@@ -53,26 +54,15 @@ export default class lastfm {
       this.updateNowPlayingTrack(attributes);
     });
 
+    this._utils.getIPCMain().on("lastfm:FilteredNowPlayingItemDidChange", (event: any, attributes: any) => {
+      if (this._utils.getStoreValue("general.privateEnabled")) return;
+      this.updateNowPlayingTrack(attributes);
+    });
+
     this._utils.getIPCMain().on("lastfm:scrobbleTrack", (event: any, attributes: any) => {
       if (this._utils.getStoreValue("general.privateEnabled")) return;
       this.scrobbleTrack(attributes);
     });
-  }
-
-  /**
-   * Runs on playback State Change
-   * @param attributes Music Attributes (attributes.status = current state)
-   */
-  onPlaybackStateDidChange(attributes: object): void {}
-
-  /**
-   * Runs on song change
-   * @param attributes Music Attributes
-   * @param scrobble
-   */
-  onNowPlayingItemDidChange(attributes: any, scrobble = false): void {
-    if (this._utils.getStoreValue("general.privateEnabled")) return;
-    this.updateNowPlayingTrack(attributes);
   }
 
   /**
@@ -130,12 +120,16 @@ export default class lastfm {
       this._lfm.album.getInfo(
         {
           artist: attributes.primaryArtist,
-          album: attributes.albumName,
+          album: attributes.albumName.replace(/ - Single| - EP/g, ""),
         },
         (err: any, data: any) => {
           if (err) {
             console.error(`[${lastfm.name}] [album.getInfo] Error: ${typeof err === "string" ? err : err.message}`);
-            return {};
+            attributes.lfmAlbum = {
+              name: attributes.albumName.replace(/ - Single| - EP/g, ""),
+              artist: attributes.primaryArtist,
+            };
+            callback(attributes);
           }
           if (data) {
             attributes.lfmAlbum = data;
@@ -147,7 +141,13 @@ export default class lastfm {
       this._lfm.track.getCorrection(attributes.primaryArtist, attributes.name, (err: any, data: any) => {
         if (err) {
           console.error(`[${lastfm.name}] [track.getCorrection] Error: ${typeof err === "string" ? err : err.message}`);
-          return {};
+          attributes.lfmTrack = {
+            name: attributes.name,
+            artist: {
+              name: attributes.primaryArtist,
+            },
+          };
+          callback(attributes);
         }
         if (data) {
           attributes.lfmTrack = data.correction.track;

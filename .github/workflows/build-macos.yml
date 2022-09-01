@@ -34,11 +34,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Change Version
+      - name: Run Version Script
         env:
           GH_REQUEST_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           sudo chmod +x resources/version.sh && ./resources/version.sh || true
+          echo "APP_VERSION=$(node -p -e 'require("./package.json").version')" >>$GITHUB_ENV
 
       - name: Sign in to EVS
         run: |
@@ -48,13 +49,16 @@ jobs:
       - name: Setup Environment
         run: brew install automake #libtool autoconf
 
+      - name: Clear node_airtunes2 cache
+        run: sudo rm -rf /Users/runner/Library/Caches/Yarn/v6/.tmp/cf5bc2de2629636ca224995234b8eaa1 || true
+
       - name: Install and Configure Node Modules
         run: |
           yarn install
           cp resources/verror-types node_modules/@types/verror/index.d.ts
           cp resources/macPackager.js node_modules/app-builder-lib/out/macPackager.js
-          rm -r node_modules/pouchdb-node/node_modules/leveldown
-          rm -r node_modules/pouchdb-adapter-leveldb/node_modules/leveldown
+          rm -r node_modules/pouchdb-node/node_modules/leveldown || true
+          rm -r node_modules/pouchdb-adapter-leveldb/node_modules/leveldown || true
 
       - name: Build the DMG
         env:
